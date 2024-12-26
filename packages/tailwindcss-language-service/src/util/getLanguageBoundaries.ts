@@ -1,6 +1,6 @@
 import type { Range } from 'vscode-languageserver'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
-import { isVueDoc, isHtmlDoc, isSvelteDoc } from './html'
+import { isVueDoc, isHtmlDoc, isSvelteDoc, isRustContext } from './html'
 import type { State } from './state'
 import { indexToPosition } from './find'
 import { isJsDoc } from './js'
@@ -159,7 +159,7 @@ export function getLanguageBoundaries(
 
   let defaultType = isVueDoc(doc)
     ? 'none'
-    : isHtmlDoc(state, doc) || isSvelteDoc(doc)
+    : isHtmlDoc(state, doc) || isSvelteDoc(doc) || isRustContext(doc)
       ? 'html'
       : isJs
         ? 'jsx'

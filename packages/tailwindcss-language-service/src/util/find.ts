@@ -3,7 +3,7 @@ import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { DocumentClassName, DocumentClassList, State, DocumentHelperFunction } from './state'
 import lineColumn from 'line-column'
 import { isCssContext, isCssDoc } from './css'
-import { isHtmlContext, isVueDoc } from './html'
+import { isHtmlContext, isRustContext, isVueDoc } from './html'
 import { isWithinRange } from './isWithinRange'
 import { isJsxContext } from './js'
 import { dedupeByRange, flatten } from './array'
@@ -74,7 +74,7 @@ export async function findClassNamesInRange(
   state: State,
   doc: TextDocument,
   range?: Range,
-  mode?: 'html' | 'css' | 'jsx',
+  mode?: 'html' | 'css' | 'jsx' | 'rust',
   includeCustom: boolean = true,
 ): Promise<DocumentClassName[]> {
   const classLists = await findClassListsInRange(state, doc, range, mode, includeCustom)
@@ -267,7 +267,7 @@ export async function findClassListsInRange(
   state: State,
   doc: TextDocument,
   range?: Range,
-  mode?: 'html' | 'css' | 'jsx',
+  mode?: 'html' | 'css' | 'jsx' | 'rust',
   includeCustom: boolean = true,
 ): Promise<DocumentClassList[]> {
   let classLists: DocumentClassList[] = []
@@ -297,9 +297,9 @@ export async function findClassListsInDocument(
     flatten([
       ...(await Promise.all(
         boundaries
-          .filter((b) => b.type === 'html' || b.type === 'jsx')
+          .filter((b) => b.type === 'html' || b.type === 'jsx' || b.type === 'rust')
           .map(({ type, range }) =>
-            findClassListsInHtmlRange(state, doc, type === 'html' ? 'html' : 'jsx', range),
+            findClassListsInHtmlRange(state, doc, type === 'html' || type === 'rust' ? 'html' : 'jsx', range),
           ),
       )),
       ...boundaries
@@ -465,7 +465,11 @@ export async function findClassNameAtPosition(
     classNames = await findClassNamesInRange(state, doc, searchRange, 'html')
   } else if (isJsxContext(state, doc, position)) {
     classNames = await findClassNamesInRange(state, doc, searchRange, 'jsx')
-  } else {
+  }
+  else if (isRustContext(doc)) {
+    classNames = await findClassNamesInRange(state, doc, searchRange, 'html')
+  }
+   else {
     classNames = await findClassNamesInRange(state, doc, searchRange)
   }
 

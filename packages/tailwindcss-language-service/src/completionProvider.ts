@@ -12,7 +12,7 @@ import type { TextDocument } from 'vscode-languageserver-textdocument'
 import dlv from 'dlv'
 import removeMeta from './util/removeMeta'
 import { formatColor, getColor, getColorFromValue } from './util/color'
-import { isHtmlContext } from './util/html'
+import { isHtmlContext, isRustContext } from './util/html'
 import { isCssContext } from './util/css'
 import { findLast, matchClassAttributes } from './util/find'
 import { stringifyConfigValue, stringifyCss } from './util/stringify'
@@ -41,6 +41,8 @@ import { IS_SCRIPT_SOURCE, IS_TEMPLATE_SOURCE } from './metadata/extensions'
 import * as postcss from 'postcss'
 import { findFileDirective } from './completions/file-paths'
 import type { ThemeEntry } from './util/v4'
+import { trimClass } from './fakeConstructor'
+import * as culori from 'culori'
 
 let isUtil = (className) =>
   Array.isArray(className.__info)
@@ -62,7 +64,8 @@ export function completionsFromClassList(
   let subset: any
   let subsetKey: string[] = []
   let isSubset: boolean = false
-
+  
+  let lastClass = trimClass(classList)
   let replacementRange = {
     ...classListRange,
     start: {
@@ -505,34 +508,43 @@ export function completionsFromClassList(
     }
 
     if (state.classList) {
+      let isFirst = false;
+      let items2 = state.classList.reduce<CompletionItem[]>((items2, [className, { color }], index) => {
+        if (
+          state.blocklist?.includes([...existingVariants, className].join(state.separator))
+        ) {
+          return items2
+        }
+
+        let kind: CompletionItemKind = color ? 16 : 21
+        let documentation: string | undefined
+
+        if (color && typeof color !== 'string') {
+          documentation = culori.formatRgb(color)
+        }
+
+        let precise = className.includes(lastClass);
+        if (precise) {
+          if (isFirst == false) {
+            isFirst = true;
+            items = [];
+          }
+          let sortText = precise ? "-000000000" : naturalExpand(index, state.classList.length);
+          items2.push({
+            label: className,
+            kind: kind,
+            ...(documentation ? { documentation } : {}),
+            sortText: sortText
+            // sortText: naturalExpand(index, state.classList.length),
+          })
+        }
+        return items2
+      }, [] as CompletionItem[]);
+      
       return withDefaults(
         {
           isIncomplete: false,
-          items: items.concat(
-            state.classList.reduce<CompletionItem[]>((items, [className, { color }], index) => {
-              if (
-                state.blocklist?.includes([...existingVariants, className].join(state.separator))
-              ) {
-                return items
-              }
-
-              let kind = color ? CompletionItemKind.Color : CompletionItemKind.Constant
-              let documentation: string | undefined
-
-              if (color && typeof color !== 'string') {
-                documentation = formatColor(color)
-              }
-
-              items.push({
-                label: className,
-                kind,
-                ...(documentation ? { documentation } : {}),
-                sortText: naturalExpand(index, state.classList.length),
-              })
-
-              return items
-            }, [] as CompletionItem[]),
-          ),
+          items: items.concat(items2),
         },
         {
           data: {
@@ -946,7 +958,7 @@ async function provideClassNameCompletions(
     return provideAtApplyCompletions(state, document, position, context)
   }
 
-  if (isHtmlContext(state, document, position) || isJsxContext(state, document, position)) {
+  if (isHtmlContext(state, document, position) || isJsxContext(state, document, position) || isRustContext(document)) {
     return provideClassAttributeCompletions(state, document, position, context)
   }
 
