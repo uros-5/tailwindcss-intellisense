@@ -45,6 +45,7 @@ import type { ThemeEntry } from './util/v4'
 import { posix } from 'node:path/win32'
 import { segment } from './util/segment'
 import { resolveKnownThemeKeys, resolveKnownThemeNamespaces } from './util/v4/theme-keys'
+import { sortClasses, trimClass } from './util/trimClass'
 
 let isUtil = (className) =>
   Array.isArray(className.__info)
@@ -66,6 +67,8 @@ export function completionsFromClassList(
   let subset: any
   let subsetKey: string[] = []
   let isSubset: boolean = false
+
+  let lastClass = trimClass(classList);  
 
   let replacementRange = {
     ...classListRange,
@@ -540,6 +543,7 @@ export function completionsFromClassList(
     }
 
     if (state.classList) {
+      let isFirst = false;
       return withDefaults(
         {
           isIncomplete: false,
@@ -557,12 +561,19 @@ export function completionsFromClassList(
               if (color && typeof color !== 'string') {
                 documentation = formatColor(color)
               }
+              let sorted = sortClasses(className, lastClass, isFirst, items, index, state);
+              if(sorted == undefined) {
+                return items;
+              }
+              let [sortText, newItems, isFirst2] = sorted;
+              isFirst = isFirst2;
+              items = newItems;
 
               items.push({
                 label: className,
                 kind,
                 ...(documentation ? { documentation } : {}),
-                sortText: naturalExpand(index, state.classList.length),
+                sortText: sortText,
               })
 
               return items

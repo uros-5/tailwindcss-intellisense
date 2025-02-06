@@ -13,7 +13,7 @@ function getDefaultSettings(): Settings {
     editor: { tabSize: 2 },
     tailwindCSS: {
       emmetCompletions: false,
-      classAttributes: ['class', 'className', 'ngClass', 'class:list'],
+      classAttributes: ['class', 'className', 'ngClass', 'class:list', '\\w.*_CLASS', '\\w.*_class'],
       codeActions: true,
       hovers: true,
       suggestions: true,
