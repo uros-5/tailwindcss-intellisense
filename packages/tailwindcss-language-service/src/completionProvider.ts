@@ -315,6 +315,8 @@ export function completionsFromClassList(
       }
     }
 
+    let isFirst = false;
+
     return withDefaults(
       {
         isIncomplete: false,
@@ -331,11 +333,20 @@ export function completionsFromClassList(
               documentation = formatColor(color)
             }
 
+            let sorted = sortClasses(className, lastClass, isFirst, items, index, state);
+            if (sorted == undefined) {
+              return items;
+            }
+            let [sortText, newItems, isFirst2] = sorted;
+            isFirst = isFirst2;
+            items = newItems;
+            
+
             items.push({
               label: className,
               kind,
               ...(documentation ? { documentation } : {}),
-              sortText: naturalExpand(index, state.classList.length),
+              sortText: sortText,
             })
 
             return items

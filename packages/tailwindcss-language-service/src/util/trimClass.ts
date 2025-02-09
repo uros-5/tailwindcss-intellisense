@@ -1,8 +1,6 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import { State } from "./state";
 import { naturalExpand } from "./naturalExpand";
-import * as culori from "culori";
-import { formatColor } from "./color";
 
 export function trimClass(className: string): string {
   let parts = className.split(" ")
@@ -30,7 +28,8 @@ export function sortClasses(className: string, lastClass: string, isFirst: boole
       isFirst = true;
       items = [];
     }
-    let sortText = precise ? "-000000000" : naturalExpand(index, state.classList.length);
+    precise = lastClass.length == 0 ? false : precise; 
+    let sortText = precise ? "-0" : naturalExpand(index, state.classList.length);
     return [sortText, items, isFirst]
   }
   return undefined;
